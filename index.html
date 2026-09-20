@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+< lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal de Depuración - Core Root</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --panel-color: #121216;
+            --text-color: #e2e8f0;
+            --accent-green: #00ffcc;
+            --accent-orange: #ff4500;
+            --border-color: #26262b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--panel-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            color: var(--accent-green);
+            font-size: 1.5rem;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: #1a1a24;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        button.active-err {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            background-color: #070709;
+            color: #a3e635;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px;
+            box-sizing: border-box;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .output-panel {
+            margin-top: 20px;
+            background-color: #070709;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-height: 200px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-line {
+            margin: 5px 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border-left: 3px solid #4b5563;
+            padding-left: 8px;
+        }
+
+        .log-error {
+            border-left-color: var(--accent-orange);
+            color: #fca5a5;
+            background-color: rgba(254, 226, 226, 0.05);
+        }
+
+        .log-info {
+            border-left-color: var(--accent-green);
+            color: #99f6e4;
+        }
+    </style>
+</head>
+<>
+
+<div class="container">
+    <h1>Consola de Depuración de Logs // Sistema Activo</h1>
+    
+    <div class="controls">
+        <button id="btnParse">Procesar Datos</button>
+        <button id="btnErrors" class="active-err">Filtrar Errores Críticos</button>
+        <button id="btnClear">Limpiar Consola</button>
+    </div>
+
+    <textarea id="logInput" placeholder="Pega aquí las líneas de registro del servidor o los datos en bruto..."></textarea>
+
+    <div class="output-panel" id="logOutput">
+        <div class="log-line log-info">[SISTEMA] Esperando inyección de flujo de datos en el ahora...</div>
+    </div>
+</div>
+
+<script>
+    // @ts-nocheck
+    // CONFIGURACIÓN EN JAVASCRIPT PURO NATIVO
+    var logInput = document.getElementById('logInput');
+    var logOutput = document.getElementById('logOutput');
+    var btnParse = document.getElementById('btnParse');
+    var btnErrors = document.getElementById('btnErrors');
+    var btnClear = document.getElementById('btnClear');
+
+    var filterErrorsOnly = false;
+    var rawLogData = [];
+
+    function renderLogs(logs) {
+        logOutput.innerHTML = '';
+        if (logs.length === 0) {
+            logOutput.innerHTML = '<div class="log-line log-info">[SISTEMA] Flujo limpio. No se detectan anomalías en el bloque actual.</div>';
+            return;
+        }
+
+        logs.forEach(function(line) {
+            var div = document.createElement('div');
+            div.className = 'log-line';
+            
+            if (line.toUpperCase().includes('ERROR') || line.toUpperCase().includes('CRITICAL') || line.toUpperCase().includes('FAIL')) {
+                div.classList.add('log-error');
+            } else {
+                div.classList.add('log-info');
+            }
+            
+            div.textContent = line;
+            logOutput.appendChild(div);
+        });
+    }
+
+    btnParse.addEventListener('click', function() {
+        var text = logInput.value.trim();
+        if (!text) {
+            logOutput.innerHTML = '<div class="log-line log-error">[ERROR] La entrada está vacía. Inyecta datos para iniciar el escaneo.</div>';
+            return;
+        }
+
+        rawLogData = text.split('\n').filter(function(line) {
+            return line.trim() !== '';
+        });
+        
+        if (filterErrorsOnly) {
+            var errorLogs = rawLogData.filter(function(line) { 
+                return line.toUpperCase().includes('ERROR') || line.toUpperCase().includes('CRITICAL') || line.toUpperCase().includes('FAIL');
+            });
+            renderLogs(errorLogs);
+        } else {
+            renderLogs(rawLogData);
+        }
+    });
+
+    btnErrors.addEventListener('click', function() {
+        filterErrorsOnly = !filterErrorsOnly;
+        
+        if (filterErrorsOnly) {
+            btnErrors.style.borderColor = 'var(--accent-orange)';
+            btnErrors.style.color = 'var(--accent-orange)';
+            btnErrors.textContent = 'Filtro: SOLO ERRORES';
+        } else {
+            btnErrors.style.borderColor = 'var(--border-color)';
+            btnErrors.style.color = 'var(--text-color)';
+            btnErrors.textContent = 'Filtrar Errores Críticos';
+        }
+
+        if (rawLogData.length > 0) {
+            btnParse.click();
+        }
+    });
+
+    btnClear.addEventListener('click', function() {
+        logInput.value = '';
+        rawLogData = [];
+        logOutput.innerHTML = '<div class="log-line log-info">[SISTEMA] Memoria RAM vaciada. Esperando nueva entrada...</div>';
+    });
+</script>
+</body>
+</html>
